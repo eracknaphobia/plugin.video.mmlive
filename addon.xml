@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.mmlive" name="March Madness Live" version="2016.3.18" provider-name="eracknaphobia">
+<addon id="plugin.video.mmlive" name="March Madness Live" version="2016.3.18.2" provider-name="eracknaphobia">
   <requires>
    <import addon="xbmc.python" version="2.14.0"/>   
    <import addon="script.module.simplejson" version="3.3.0"/>    
@@ -17,7 +17,7 @@
     <language>en</language>
     <platform>all</platform>
     <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
-    <forum></forum>
+    <forum>http://forum.kodi.tv/showthread.php?tid=264888</forum>
     <website></website>
     <email></email>
     <source></source>

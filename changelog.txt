@@ -1,2 +1,5 @@
+2016.3.18.2
+- Fix settings bug
+
 2016.3.18
 - Beta released

@@ -543,14 +543,14 @@ settings = xbmcaddon.Addon(id='plugin.video.mmlive')
 #Main settings
 #QUALITY = int(settings.getSetting(id="quality"))
 #USER_AGENT = str(settings.getSetting(id="user-agent"))
-CDN = int(settings.getSetting(id="cdn"))
+#CDN = int(settings.getSetting(id="cdn"))
 USERNAME = str(settings.getSetting(id="username"))
 PASSWORD = str(settings.getSetting(id="password"))
 PROVIDER = str(settings.getSetting(id="provider"))
 CLEAR = str(settings.getSetting(id="clear_data"))
-FREE_ONLY = str(settings.getSetting(id="free_only"))
-PLAY_MAIN = str(settings.getSetting(id="play_main"))
-PLAY_BEST = str(settings.getSetting(id="play_best"))
+#FREE_ONLY = str(settings.getSetting(id="free_only"))
+#PLAY_MAIN = str(settings.getSetting(id="play_main"))
+#PLAY_BEST = str(settings.getSetting(id="play_best"))
 NO_SPOILERS = str(settings.getSetting(id="no_spoilers"))
 
 if CLEAR == 'true':
