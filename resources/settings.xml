@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+  <!--Provider-->
+  <category label="100">
+    <setting id="provider" type="labelenum" label="110" values="Bright House|Cable One|Charter|Comcast (xfinity)|Cox|Dish Network|Direct TV|Optimum|Time Warner Cable|Verizon" sort="yes"/>   
+    <setting id="username" type="text" label="140" default=""/>
+    <setting id="password" type="text" label="150" option="hidden" default=""/>
+  </category>  
+  <!-- Visual -->
+  <category label="300">
+  
+    <setting id="no_spoilers" type="enum" label="170" lvalues="1700|1701|1702|1703" default="1700" /> 
+  </category>
+</settings>
