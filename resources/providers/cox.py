@@ -105,7 +105,7 @@ class COX():
         
         login_data = urllib.urlencode({'username' : USERNAME,
                                        'password' : PASSWORD,
-                                       'CallerID' : 'tvonline',
+                                       'CallerID' : 'turner',
                                        'x' :  '82',
                                        'y' :  '13',
                                        'target' :  self.TARGET,
