@@ -82,6 +82,14 @@ class COX():
         self.ON_SUCCESS = FIND(login_source,'<input type="hidden" name="onsuccess" value="','"')
         self.ON_FAILURE = FIND(login_source,'<input type="hidden" name="onfailure" value="','"')
 
+        print "TARGET"
+        print self.TARGET
+        print "ON_SUCCESS"
+        print self.ON_SUCCESS
+        print "ON_FAILURE"
+        print self.ON_FAILURE
+
+
 
         return saml_request, relay_state, saml_submit_url
     
@@ -89,7 +97,8 @@ class COX():
         ###################################################################
         #Post username and password to idp        
         ###################################################################        
-        
+        print "SAML Submit URL"
+        print saml_submit_url
         cj = cookielib.LWPCookieJar()
         cj.load(os.path.join(ADDON_PATH_PROFILE, 'cookies.lwp'),ignore_discard=True)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))    
@@ -111,30 +120,35 @@ class COX():
                                        'target' :  self.TARGET,
                                        'onsuccess' :  self.ON_SUCCESS,
                                        'onfailure' :  self.ON_FAILURE,                                       
-                                       'DeviceID' :  ''
+                                       'DeviceID' :  DEVICE_ID
                                        })
         
-        try:
-            resp = opener.open(saml_submit_url, login_data)
-            print resp.getcode()
-            print resp.info()
-            #idp_source = resp.read()
-            if resp.info().get('Content-Encoding') == 'gzip':
-                buf = StringIO(resp.read())
-                f = gzip.GzipFile(fileobj=buf)
-                idp_source = f.read()
-            else:
-                idp_source = resp.read()
-                
-            resp.close()
+        #try:
+        resp = opener.open(saml_submit_url, login_data)        
+        print login_data
+        print resp.getcode()
+        print resp.info()
+        #idp_source = resp.read()
+        if resp.info().get('Content-Encoding') == 'gzip':
+            buf = StringIO(resp.read())
+            f = gzip.GzipFile(fileobj=buf)
+            idp_source = f.read()
+        else:
+            idp_source = resp.read()
             
-            saml_response = FIND(idp_source,'<input type="hidden" name="SAMLResponse" value="','"')  
-            saml_response = HTMLParser.HTMLParser().unescape(saml_response)                                                        
-            relay_state = FIND(idp_source,'<input type="hidden" name="RelayState" value="','"')
+        resp.close()
+
+        print 'COX LOGIN RESPONSE ------------------------------------------------'
+        print idp_source        
+        print '-------------------------------------------------------------------'
+        
+        saml_response = FIND(idp_source,'<input type="hidden" name="SAMLResponse" value="','"')  
+        saml_response = HTMLParser.HTMLParser().unescape(saml_response)                                                        
+        relay_state = FIND(idp_source,'<input type="hidden" name="RelayState" value="','"')
 
          
-        except:
-            saml_response = ""
-            relay_state = ""
+        #except:
+        #saml_response = ""
+        #relay_state = ""
         
         return saml_response, relay_state

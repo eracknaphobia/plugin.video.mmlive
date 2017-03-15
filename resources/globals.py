@@ -1,17 +1,22 @@
-import re
-import os
-import sys
-import xbmc, xbmcplugin, xbmcgui, xbmcaddon
-import json
+import uuid
+import hmac
+import hashlib
 import string, random
+from StringIO import StringIO
+import gzip
+from urllib2 import URLError, HTTPError
+import sys
+import xbmc,xbmcplugin, xbmcgui, xbmcaddon
+import re, os, time
 import urllib, urllib2, httplib2
+import json
 import HTMLParser
+import calendar
+from datetime import datetime, timedelta
 import time
 import cookielib
 import base64
-from StringIO import StringIO
-import gzip
-from datetime import datetime, timedelta
+
 
 addon_handle = int(sys.argv[1])
 SCORE_COLOR = 'FF00B7EB'
@@ -235,7 +240,8 @@ def CLEAR_SAVED_DATA():
 
 
 def getTournamentInfo():
-    url = 'http://data.ncaa.com/mml/2016/mobile/tournament.json'
+    now = datetime.now()
+    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/tournament.json'
     req = urllib2.Request(url)
     #req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
     req.add_header('Connection', 'keep-alive')
@@ -266,7 +272,8 @@ def getTeamInfo(teams, team_id):
     return team_name, link_name
 
 def getCurrentInfo():
-    url = 'http://data.ncaa.com/mml/2016/mobile/current.json'
+    now = datetime.now()
+    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/current.json'
     req = urllib2.Request(url)
     #req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
     req.add_header('Connection', 'keep-alive')
@@ -279,7 +286,12 @@ def getCurrentInfo():
     json_source = json.load(response)                           
     response.close() 
 
-    current_games = json.dumps(json_source['current']['game'])
+    current_games = ''
+    
+    try:
+        current_games = json.dumps(json_source['current']['game'])
+    except:
+        pass
 
     return current_games
 
@@ -384,8 +396,12 @@ def fetchStream(game_id, partnerParam1):
     Accept-Language: en-us
     Accept-Encoding: gzip, deflate
     Connection: keep-alive
+
+    Recap
+    http://data.ncaa.com/mml/2017/mobile/game/game_101.json 
     '''
-    req = urllib2.Request('http://data.ncaa.com/mml/2016/mobile/video/'+game_id+'.json')    
+    now = datetime.now()
+    req = urllib2.Request('http://data.ncaa.com/mml/'+str(now.year)+'/mobile/video/'+game_id+'.json')    
     req.add_header('Accept', '*/*')
     req.add_header('User-Agent', UA_MMOD)
     req.add_header('Accept-Language', 'en-us')
@@ -522,6 +538,26 @@ def addDir(name,url,mode,iconimage,fanart=None):
     xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
     return ok
 
+
+def addLink(name,url,iconimage,fanart=None):
+    ok=True            
+    if iconimage != None:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage) 
+    else:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ICON) 
+
+    liz.setInfo( type="Video", infoLabels={ "Title": name } )
+    liz.setProperty("IsPlayable", "true")
+
+    if fanart != None:
+        liz.setProperty('fanart_image', fanart)
+    else:
+        liz.setProperty('fanart_image', FANART)
+
+
+    ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=liz)    
+    xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
+    return ok
 
 
 # KODI ADDON GLOBALS
