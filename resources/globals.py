@@ -1,17 +1,22 @@
-import re
-import os
-import sys
-import xbmc, xbmcplugin, xbmcgui, xbmcaddon
-import json
+import uuid
+import hmac
+import hashlib
 import string, random
+from StringIO import StringIO
+import gzip
+from urllib2 import URLError, HTTPError
+import sys
+import xbmc,xbmcplugin, xbmcgui, xbmcaddon
+import re, os, time
 import urllib, urllib2, httplib2
+import json
 import HTMLParser
+import calendar
+from datetime import datetime, timedelta
 import time
 import cookielib
 import base64
-from StringIO import StringIO
-import gzip
-from datetime import datetime, timedelta
+
 
 addon_handle = int(sys.argv[1])
 SCORE_COLOR = 'FF00B7EB'
@@ -20,7 +25,7 @@ CRITICAL ='FFD10D0D'
 FINAL = 'FF666666'
 FREE = 'FF43CD80'
 GAMETIME_COLOR = 'FFFFFF66'
-
+BASE_PATH = 'https://data.ncaa.com/mml/2017/mobile'
 
 def colorString(string, color):
     return '[COLOR='+color+']'+string+'[/COLOR]'
@@ -66,37 +71,10 @@ def GET_RESOURCE_ID():
     resource_id='truTV&resource_id=TNT&resource_id=TBS&authentication_token=%3CsignatureInfo%3ERnNoE2akRWIggEQRFpt3J68BjpOwHdz8h7MHXMrbvaO3YCPcxqQaEO0v6IVkd5YXX3o2GQx1jodloBN3d07EnW7gJPiqH5WnNQWw4JzRdryvvmU1og1myAKWJeAmlWVQwWbh%2F%2BIvYg0o4ixiH2FXV0f4aabonzveA7u1QZ5e1BE%3D%3CsignatureInfo%3E%3CsimpleAuthenticationToken%3E%3CsimpleTokenAuthenticationGuid%3Eca0aa85164c3f2e3e90ea8559e93ae07%3C%2FsimpleTokenAuthenticationGuid%3E%3CsimpleSamlSessionIndex%3E0XEThQfyW5yOFn5%2B4GBReoziz8aNdYNDBqG6%2FDUJTLJJRN5LGMKmvDf1Sbp1YXts%3C%2FsimpleSamlSessionIndex%3E%3CsimpleTokenRequestorID%3EMML%3C%2FsimpleTokenRequestorID%3E%3CsimpleTokenDomainName%3Eadobe.com%3C%2FsimpleTokenDomainName%3E%3CsimpleTokenExpires%3E2016%2F07%2F15%2005%3A10%3A34%20GMT%20-0700%3C%2FsimpleTokenExpires%3E%3CsimpleTokenMsoID%3ETempPass%3C%2FsimpleTokenMsoID%3E%3CsimpleTokenDeviceID%3E%3CsimpleTokenFingerprint%3E5c15e4c07ddbbf09276fcfc54489a6e9ededb0b6%3C%2FsimpleTokenFingerprint%3E%3C%2FsimpleTokenDeviceID%3E%3CsimpleSamlNameID%3E0XEThQfyW5yOFn5%2B4GBReoziz8aNdYNDBqG6%2FDUJTLJJRN5LGMKmvDf1Sbp1YXts%3C%2FsimpleSamlNameID%3E%3C%2FsimpleAuthenticationToken%3E&requestor_id=MML'
     return resource_id
 
-def GET_SIGNED_REQUESTOR_ID():
 
-    ##################################################
-    # Use this call to get Adobe's Signed ID
-    ##################################################
-    """
-    GET http://stream.nbcsports.com/data/mobile/configuration-2014-RSN-Sections.json HTTP/1.1
-    Host: stream.nbcsports.com
-    Connection: keep-alive
-    Accept: */*
-    User-Agent: NBCSports/1030 CFNetwork/711.3.18 Darwin/14.0.0
-    Accept-Language: en-us
-    Accept-Encoding: gzip, deflate
-    Connection: keep-alive
-    """
-    req = urllib2.Request(ROOT_URL+'configuration-2014-RSN-Sections.json')  
-    req.add_header('User-Agent',  UA_MMOD)
-    response = urllib2.urlopen(req)        
-
-    json_source = json.load(response)                       
-    response.close() 
-
-    print "ADOBE PASS"
-    signed_requestor_id = json_source['adobePassSignedRequestorId']
-    signed_requestor_id = signed_requestor_id.replace('\n',"")
-    print signed_requestor_id
-    
-    return signed_requestor_id
 
 def SET_STREAM_QUALITY(url):
-    print url
+    
     stream_url = {}
     stream_title = []
 
@@ -118,8 +96,6 @@ def SET_STREAM_QUALITY(url):
             cookies = cookies + "; "
         cookies = cookies + cookie.name + "=" + cookie.value
     
-    print master
-    print cookies
     line = re.compile("(.+?)\n").findall(master)  
     
     xplayback = ''.join([random.choice('0123456789ABCDEF') for x in range(32)])
@@ -183,14 +159,6 @@ def SET_STREAM_QUALITY(url):
         dialog = xbmcgui.Dialog() 
         ok = dialog.ok('Streams Not Found', msg)
 
-    '''
-    url = url.replace('master.m3u8',q_lvl_golf+'/proge.m3u8')       
-    url = url.replace('manifest(format=m3u8-aapl-v3)','QualityLevels('+q_lvl+')/Manifest(video,format=m3u8-aapl-v3,audiotrack=audio_en_0)')       
-    url = url.replace('manifest(format=m3u8-aapl,filtername=vodcut)','QualityLevels('+q_lvl+')/Manifest(video,format=m3u8-aapl,filtername=vodcut)')
-    url = url.replace('manifest(format=m3u8-aapl-v3,filtername=vodcut)','QualityLevels('+q_lvl+')/Manifest(video,format=m3u8-aapl-v3,audiotrack=audio_en_0,filtername=vodcut)')
-    '''
-    
-    print "STREAM URL === " + url 
 
     return url
 
@@ -213,29 +181,11 @@ def SAVE_COOKIE(cj):
     cj.save(ignore_discard=True);  
 
 
-def CLEAR_SAVED_DATA():
-    print "IN CLEAR"
-    try:
-        os.remove(ADDON_PATH_PROFILE+'/device.id')
-    except:
-        pass
-    try:
-        os.remove(ADDON_PATH_PROFILE+'/provider.info')
-    except:
-        pass
-    try:
-        os.remove(ADDON_PATH_PROFILE+'/cookies.lwp')
-    except:
-        pass
-    try:
-        os.remove(ADDON_PATH_PROFILE+'/auth.token')
-    except:
-        pass
-    ADDON.setSetting(id='clear_data', value='false')   
 
 
 def getTournamentInfo():
-    url = 'http://data.ncaa.com/mml/2016/mobile/tournament.json'
+    now = datetime.now()
+    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/tournament.json'
     req = urllib2.Request(url)
     #req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
     req.add_header('Connection', 'keep-alive')
@@ -266,7 +216,8 @@ def getTeamInfo(teams, team_id):
     return team_name, link_name
 
 def getCurrentInfo():
-    url = 'http://data.ncaa.com/mml/2016/mobile/current.json'
+    now = datetime.now()
+    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/current.json'
     req = urllib2.Request(url)
     #req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
     req.add_header('Connection', 'keep-alive')
@@ -279,7 +230,12 @@ def getCurrentInfo():
     json_source = json.load(response)                           
     response.close() 
 
-    current_games = json.dumps(json_source['current']['game'])
+    current_games = ''
+    
+    try:
+        current_games = json.dumps(json_source['current']['game'])
+    except:
+        pass
 
     return current_games
 
@@ -327,55 +283,84 @@ def getGameClock(current_games, game_id):
     return clock + ' ' + per + ordinal_indicator
     
 
+def getAppConfig():
+    #https://data.ncaa.com/mml/2017/mobile/appConfig_iPhone.json    
+    now = datetime.now()
+    url = 'https://data.ncaa.com/mml/'+str(now.year)+'/mobile/appConfig_iPhone.json'
+    req = urllib2.Request(url)    
+    req.add_header('Accept', '*/*')
+    req.add_header('User-Agent', UA_IPHONE)
+    req.add_header('Accept-Language', 'en-us')
+    req.add_header('Accept-Encoding', 'deflate')
 
-def tokenTurner(media_token):
+    response = urllib2.urlopen(req)   
+    json_source = json.load(response)                       
+    response.close()  
+    
+    api = json_source['api']    
+    #BASE_PATH = api['base']['sche']
+
+
+
+def tokenTurner(media_token, stream_url, mvpd):
+        #stream_url
+        #http://mml01-i.akamaihd.net/hls/live/265830/201/villanovavsmt-st-marys/connected1/master.m3u8
         '''
-        POST http://token.vgtf.net/token/turner HTTP/1.1
-        Host: token.vgtf.net
-        Content-Type: application/x-www-form-urlencoded
-        Connection: keep-alive
+        POST http://token.vgtf.net/token/token_spe_mml?profile=mml HTTP/1.1
         Current-Type: application/x-www-form-urlencoded
-        Connection: keep-alive
-        Accept: */*
-        Accept-Language: en-us
-        Content-Length: 666
-        Accept-Encoding: gzip, deflate
-        User-Agent: MML/43 CFNetwork/758.2.8 Darwin/15.0.0
+        Content-Length: 719
+        Content-Type: application/x-www-form-urlencoded
+        Host: token.vgtf.net
+        Connection: Keep-Alive
+        Pragma: no-cache
 
-        accessToken=%3CsignatureInfo%3EWxrCt58xTmqQh2DwO0NqNNi%2BZdBjVXx3GQjyXQKIJ%2BVezCXviDbtugc2nCOicm5rnKZSvBTNOrGfn2ZrcNNsAaGdIBSFbo%2FEpboV6CofjuvO5Sm1APd3ispvH07GfmOhVBvmdDz0gOQ22MjVBz9qGRbFPhks%2FPpMddjV0Zuufds%3D%3CsignatureInfo%3E%3CauthToken%3E%3CsessionGUID%3E613e99bf2db476308f802091f8462819%3C%2FsessionGUID%3E%3CrequestorID%3EMML%3C%2FrequestorID%3E%3CresourceID%3ETNT%3C%2FresourceID%3E%3Cttl%3E420000%3C%2Fttl%3E%3CissueTime%3E2016-03-17%2015%3A01%3A31%20-0700%3C%2FissueTime%3E%3CmvpdId%3ETempPass%3C%2FmvpdId%3E%3C%2FauthToken%3E
-        &appData={'clientTime':10800,'serverTime':10800,'unrecordedTime':0}
-        &timeRemaining=10800
-        &sessionId=
-        &mvpd=TempPass
-        &throttled=yes
+        &accessTokenType=Adobe
+        &accessToken=%3CsignatureInfo%3EXv1rtBY0MP5%2FCkaobJcjdkz0%2Ff3gZ9248XqG7hULT5qWA0UZP04AY2efA21VBxBR5r1IWZMNx5doAPmYk9SKnaKdN45T88BdoOO8aeQeet2sEDXSHu%2BqjBLLYcW6%2BqNcxU3TT1KzQkqv90vIq6BdlqDEHbI5p%2FpwwWVX9hAB9%2BM%3D%3CsignatureInfo%3E%3CauthToken%3E%3CsessionGUID%3Ea6c1d2fa9725d7857b6a9d3aa9195040%3C%2FsessionGUID%3E%3CrequestorID%3EMML%3C%2FrequestorID%3E%3CresourceID%3EtruTV%3C%2FresourceID%3E%3Cttl%3E420000%3C%2Fttl%3E%3CissueTime%3E2017-03-15+16%3A40%3A46+-0700%3C%2FissueTime%3E%3CmvpdId%3ETWC%3C%2FmvpdId%3E%3C%2FauthToken%3E
+        &sessionId=05a564d7c8622b5dd1c67f0ae737c5bb1515d66a~auth~win8~mml~100~1489621236122
+        &mvpd=TWC
+        &throttled=no
+        &path=/hls/live/265823-b/103/uc-davisvsnc-central/de/*
         '''
         url = 'http://token.vgtf.net/token/turner'
         cj = cookielib.LWPCookieJar()
         cj.load(os.path.join(ADDON_PATH_PROFILE, 'cookies.lwp'),ignore_discard=True)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-        opener.addheaders = [ ("Accept", "*/*"),
-                            ("Accept-Encoding", "gzip, deflate"),
-                            ("Accept-Language", "en-us"),
+        opener.addheaders = [ ("Current-Type", "application/x-www-form-urlencoded"),                            
+                            ("Pragma", "no-cache"),
                             ("Content-Type", "application/x-www-form-urlencoded"),                            
                             ("Connection", "keep-alive"),                                                                            
                             ("User-Agent", UA_MMOD)]
         
+        xbmc.log(str(base64.b64decode(media_token)))
+        #<signatureInfo>bfT/fz+B4Yx6GjlJ+eS2KHU9xxagNVSO48EqABBTY9/yWI6DFj9wUaZjrmWpjFaB2j1zlM86A666+7YTHlNZ2ilHvi23iZEs6IQ8Jr2jEGgx/tGJ+8XqSl+UHlbG2JLUFw3i4IFBpGaD/FwPXQSIdXuSayrHZ6WDWnwTl2ini2A=<signatureInfo><authToken><sessionGUID>a6c1d2fa9725d7857b6a9d3aa9195040</sessionGUID><requestorID>MML</requestorID><resourceID>truTV</resourceID><ttl>420000</ttl><issueTime>2017-03-16 07:39:48 -0700</issueTime><mvpdId>TWC</mvpdId></authToken>
+        payload = urllib.urlencode({'accessToken' : str(base64.b64decode(media_token)),                                
+                                'accessTokenType' : 'Adobe',
+                                #'sessionId': '05a564d7c8622b5dd1c67f0ae737c5bb1515d66a~auth~win8~mml~100~1489621236122',
+                                'throttled' : 'no',
+                                'mvpd' : mvpd,
+                                #'path': '/hls/live/265823-b/103/uc-davisvsnc-central/de/*'
+                                'path' : FIND(stream_url,BASE_PATH,'master.m3u8')+'*'
+                                })
 
-        data = urllib.urlencode({'accessToken' : media_token})
-
-        resp = opener.open(url, data)
+        resp = opener.open(url, payload)
         response = resp.read()
         #<token>PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PGF1dGhUb2tlbj48cmVzb3VyY2VJRD5UTlQ8L3Jlc291cmNlSUQ+PHRpdGxlSUQvPjxyZXF1ZXN0b3JJRD50dXJuZXI8L3JlcXVlc3RvcklEPjxpc3N1ZVRpbWU+MjAxNi0wMy0xOFQwMDowODo0MSswMDAwPC9pc3N1ZVRpbWU+PHR0bD4zMDAwMDA8L3R0bD48b3BhcXVlVXNlcklEPmE2YzFkMmZhOTcyNWQ3ODU3YjZhOWQzYWE5MTk1MDQwPC9vcGFxdWVVc2VySUQ+PFNpZ25hdHVyZSB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC8wOS94bWxkc2lnIyI+PFNpZ25lZEluZm8+PENhbm9uaWNhbGl6YXRpb25NZXRob2QgQWxnb3JpdGhtPSJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy14bWwtYzE0bi0yMDAxMDMxNSIvPjxTaWduYXR1cmVNZXRob2QgQWxnb3JpdGhtPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwLzA5L3htbGRzaWcjcnNhLXNoYTEiLz48UmVmZXJlbmNlIFVSST0iIj48VHJhbnNmb3Jtcz48VHJhbnNmb3JtIEFsZ29yaXRobT0iaHR0cDovL3d3dy53My5vcmcvMjAwMC8wOS94bWxkc2lnI2VudmVsb3BlZC1zaWduYXR1cmUiLz48L1RyYW5zZm9ybXM+PERpZ2VzdE1ldGhvZCBBbGdvcml0aG09Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvMDkveG1sZHNpZyNzaGExIi8+PERpZ2VzdFZhbHVlPldYZXoxcWFLR2RKcVFhUHZwZ1NlQ3phRFBWOD08L0RpZ2VzdFZhbHVlPjwvUmVmZXJlbmNlPjwvU2lnbmVkSW5mbz48U2lnbmF0dXJlVmFsdWU+SFpzOW5wOWptTVFGNFUrclNuejFpanJCYjBOQ21qYXc0em9IdVcwek1jeC9FdkJSRnpVSlZCaExDMWNKYlY2SU5ZZUNZVno5Wnhhbwp5THhTM2s3Q04wVE13ZjRVSXl6UG04N2gwbWxndVV0R0RCOXhiZStmeDFzdTFCNnFBUmMyYW1lakNOUlpyV0tNTGVOODhLeWR1eVdQCnE3R1Q0YXpZaVI0dG5jN0VyL3M9PC9TaWduYXR1cmVWYWx1ZT48L1NpZ25hdHVyZT48L2F1dGhUb2tlbj4=</token>
         resp.close()    
-        partnerParam1 = FIND(response,'<token>','</token>')  
-        print "param 1"
-        print partnerParam1
+        hdnts = FIND(response,'<token>','</token>')  
+        #http://mml03-i.akamaihd.net/hls/live/265823-b/103/uc-davisvsnc-central/de/master.m3u8?hdnts=exp=1489621546~acl=/hls/live/265823-b/103/*~hmac=072322367151db0fcc56acef76df509090fab91a999add08872c3d65fe1d9f1b 
+        #stream_url += '?hdnts='+hdnts
+        xbmc.log(stream_url)
+        #mediaAuth = getAuthCookie()
+        stream_url = stream_url + '|User-Agent='+UA_MMOD
+        #+'&Cookie='+mediaAuth
+        
 
-        return partnerParam1
+        return stream_url
 
 
-def fetchStream(game_id, partnerParam1):
+def fetchStream(game_id):
     ''' 
+        http://data.ncaa.com/mml/2017/mobile/video/103_bk.json
     GET http://data.ncaa.com/mml/2016/mobile/video/201.json HTTP/1.1
     Host: data.ncaa.com
     Connection: keep-alive
@@ -384,8 +369,26 @@ def fetchStream(game_id, partnerParam1):
     Accept-Language: en-us
     Accept-Encoding: gzip, deflate
     Connection: keep-alive
+
+    {
+        "updatedTimestamp": 
+        "2017-3-14 23:52:07 AST",
+        "mobile": 
+        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/mo/master.m3u8",
+        "desktop": 
+        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/de/master.m3u8",
+        "connected1": 
+        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/connected1/master.m3u8",
+        "connected2":
+        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/connected2/master.m3u8"
+        }
+
+
+    Recap
+    http://data.ncaa.com/mml/2017/mobile/game/game_101.json 
     '''
-    req = urllib2.Request('http://data.ncaa.com/mml/2016/mobile/video/'+game_id+'.json')    
+    now = datetime.now()
+    req = urllib2.Request('http://data.ncaa.com/mml/'+str(now.year)+'/mobile/video/'+game_id+'_bk.json')    
     req.add_header('Accept', '*/*')
     req.add_header('User-Agent', UA_MMOD)
     req.add_header('Accept-Language', 'en-us')
@@ -394,77 +397,11 @@ def fetchStream(game_id, partnerParam1):
     response = urllib2.urlopen(req)   
     json_source = json.load(response)                       
     response.close()  
-
-    contentId = json_source['contentId']
-
-    '''
-    GET https://mm-ws.mms.ncaa.com/pubajaxws/bamrest/MediaService2_0/op-findUserVerifiedEvent/v-2.3
-    ?partnerParam1=PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8%2BPGF1dGhUb2tlbj48cmVzb3VyY2VJRD5UTlQ8L3Jlc291cmNlSUQ%2BPHRpdGxlSUQvPjxyZXF1ZXN0b3JJRD50dXJuZXI8L3JlcXVlc3RvcklEPjxpc3N1ZVRpbWU%2BMjAxNi0wMy0xN1QyMjowMTozMSswMDAwPC9pc3N1ZVRpbWU%2BPHR0bD4zMDAwMDA8L3R0bD48b3BhcXVlVXNlcklEPjYxM2U5OWJmMmRiNDc2MzA4ZjgwMjA5MWY4NDYyODE5PC9vcGFxdWVVc2VySUQ%2BPFNpZ25hdHVyZSB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC8wOS94bWxkc2lnIyI%2BPFNpZ25lZEluZm8%2BPENhbm9uaWNhbGl6YXRpb25NZXRob2QgQWxnb3JpdGhtPSJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy14bWwtYzE0bi0yMDAxMDMxNSIvPjxTaWduYXR1cmVNZXRob2QgQWxnb3JpdGhtPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwLzA5L3htbGRzaWcjcnNhLXNoYTEiLz48UmVmZXJlbmNlIFVSST0iIj48VHJhbnNmb3Jtcz48VHJhbnNmb3JtIEFsZ29yaXRobT0iaHR0cDovL3d3dy53My5vcmcvMjAwMC8wOS94bWxkc2lnI2VudmVsb3BlZC1zaWduYXR1cmUiLz48L1RyYW5zZm9ybXM%2BPERpZ2VzdE1ldGhvZCBBbGdvcml0aG09Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvMDkveG1sZHNpZyNzaGExIi8%2BPERpZ2VzdFZhbHVlPld3Qi9jeXJCWklib1ZkVjZFRy9rMUxoN2VwMD08L0RpZ2VzdFZhbHVlPjwvUmVmZXJlbmNlPjwvU2lnbmVkSW5mbz48U2lnbmF0dXJlVmFsdWU%2BWDRKZmRyYXdVTGlPekZycjFRTFlmU2RmOXIrdFI5OEdoYkFXQW82bGVvZ2xoRCtCRWpyUVlzS0tVcGhJSUFOT0VHMnVERElwZEV6MgpyTXNjSjR4QUpTWE9VbnM2REJncnQxRWVnZGs5U2h2aTRLbzEwMC9lenFvaDY2Z1VuUWtPM0c1L0F1a29hTElqVFY1bUU4SVJ2cXhzClVkend0R3hvSnhPeHJ5Z29sY2M9PC9TaWduYXR1cmVWYWx1ZT48L1NpZ25hdHVyZT48L2F1dGhUb2tlbj4%3D
-    &platform=IPHONE
-    &playbackScenario=HTTP_CLOUD_IOS_TURNER
-    &deviceId=6CF3EA47-BBE9-4C5B-A540-B7A3EB940589
-    &subject=TURNER_MMOD_LIVE_VIDEO
-    &auth=cookie
-    &contentId=555183683 HTTP/1.1
-
-    Host: mm-ws.mms.ncaa.com
-    Accept: */*
-    Proxy-Connection: keep-alive
-    Cookie: mediaAuth=8e47612a02440b7ea81b2c96da980d1ee258b0e719c6f5538df7b7679a630b705d5c960a221749ee8a6fa90e25164223649362b5277199b99e49a2d2b0921a0f84a7cbf1eac8a09d675c7bf99db0e9cfdb0d1110929c333327d11e62e322b4c6f7df35ec32d1500b01be99b4469e296b28f998ab97dc40fe124b27649ec5740cee167a80d81e927e46dc4cbc1391a7d4c7d59007e8b07136c44f4a96e5e4ac2c8d946206c607c0836da7f38d0bb838f009bce22c4194f89678026f23bff87d4fd1cb73daba06d0c1
-    User-Agent: MML/43 CFNetwork/758.2.8 Darwin/15.0.0
-    Accept-Language: en-us
-    Accept-Encoding: gzip, deflate
-    Connection: keep-alive
-    '''
-    url = 'https://mm-ws.mms.ncaa.com/pubajaxws/bamrest/MediaService2_0/op-findUserVerifiedEvent/v-2.3'
-    url = url + '?partnerParam1='+urllib.quote_plus(partnerParam1)
-    url = url + '&platform=IPHONE'
-    url = url + '&playbackScenario=HTTP_CLOUD_IOS_TURNER'
-    url = url + '&deviceId='+DEVICE_ID
-    url = url + '&subject=TURNER_MMOD_LIVE_VIDEO'
-    url = url + '&auth=cookie'
-    url = url + '&contentId='+contentId
-    url = url + '&format=json'
     
-    cj = cookielib.LWPCookieJar(os.path.join(ADDON_PATH_PROFILE, 'cookies.lwp')) 
-    cj.load(os.path.join(ADDON_PATH_PROFILE, 'cookies.lwp'),ignore_discard=True)         
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    req = urllib2.Request(url)       
-    opener.addheaders = [ ("Accept", "*/*"),
-                        ("Accept-Encoding", "deflate"),
-                        ("Accept-Language", "en-us"),
-                        ("Content-Type", "application/x-www-form-urlencoded"),                            
-                        ("Connection", "keep-alive"),                                                                            
-                        ("User-Agent", UA_MMOD)]
-
-
+    stream_url = json_source['connected1']
     
-    #req.add_header("Accept", "*/*")
-    #req.add_header("Accept-Encoding", "deflate")
-    #req.add_header("Accept-Language", "en-US,en;q=0.8")                       
-    #req.add_header("Connection", "keep-alive")
-    #req.add_header("Authorization", authorization)
-    #req.add_header("User-Agent", UA_NHL)
-    #req.add_header("Proxy-Connection", "keep-alive")
     
-
-    response = opener.open(req)
-    json_source = json.load(response)       
-    response.close()  
-    #<![CDATA[http://ios.turner.ncaa.com/ls04/turner/2016/03/17/MMOD_VIDEO_MMOD_FLAGSvUNC_217_20160317/master_airplay.m3u8]]>
-    print '---------------------------------------------------------------------------'
-    print json_source
-    print '---------------------------------------------------------------------------'
-    stream_url = json_source['user_verified_event'][0]['user_verified_content'][0]['user_verified_media_item'][0]['url']
-    print "stream url"
-    print stream_url
-
-    SAVE_COOKIE(cj)
     
-    mediaAuth = getAuthCookie()
-    stream_url = stream_url + '|User-Agent='+UA_MMOD+'&Cookie='+mediaAuth
-    print stream_url
-
     return stream_url
 
 
@@ -482,6 +419,7 @@ def getAuthCookie():
         pass
 
     return mediaAuth
+
 
 def addStream(name,link_url,title,game_id,icon=None,fanart=None):
     ok=True
@@ -523,6 +461,26 @@ def addDir(name,url,mode,iconimage,fanart=None):
     return ok
 
 
+def addLink(name,url,iconimage,fanart=None):
+    ok=True            
+    if iconimage != None:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage) 
+    else:
+        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ICON) 
+
+    liz.setInfo( type="Video", infoLabels={ "Title": name } )
+    liz.setProperty("IsPlayable", "true")
+
+    if fanart != None:
+        liz.setProperty('fanart_image', fanart)
+    else:
+        liz.setProperty('fanart_image', FANART)
+
+
+    ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=liz)    
+    xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
+    return ok
+
 
 # KODI ADDON GLOBALS
 ADDON_HANDLE = int(sys.argv[1])
@@ -541,50 +499,7 @@ ICON = ROOTDIR+"/icon.png"
 settings = xbmcaddon.Addon(id='plugin.video.mmlive')
 
 #Main settings
-#QUALITY = int(settings.getSetting(id="quality"))
-#USER_AGENT = str(settings.getSetting(id="user-agent"))
-#CDN = int(settings.getSetting(id="cdn"))
-USERNAME = str(settings.getSetting(id="username"))
-PASSWORD = str(settings.getSetting(id="password"))
-PROVIDER = str(settings.getSetting(id="provider"))
-CLEAR = str(settings.getSetting(id="clear_data"))
-#FREE_ONLY = str(settings.getSetting(id="free_only"))
-#PLAY_MAIN = str(settings.getSetting(id="play_main"))
-#PLAY_BEST = str(settings.getSetting(id="play_best"))
 NO_SPOILERS = str(settings.getSetting(id="no_spoilers"))
-
-if CLEAR == 'true':
-   CLEAR_SAVED_DATA()
-
-print 'PROVIDER!!!'
-print PROVIDER
-MSO_ID = ''
-if PROVIDER == 'Cable One':
-    MSO_ID = 'auth_cableone_net'
-elif PROVIDER == 'Charter':    
-    MSO_ID = 'Charter_Direct'  
-elif PROVIDER == 'Comcast (xfinity)':    
-    MSO_ID = 'Comcast_SSO'  
-elif PROVIDER == 'Cox':
-    MSO_ID = 'Cox' 
-elif PROVIDER == 'Dish Network':
-    MSO_ID = 'Dish' 
-elif PROVIDER == 'Direct TV':
-    MSO_ID = 'DTV'    
-elif PROVIDER == 'Optimum':
-    MSO_ID = 'Cablevision'
-elif PROVIDER == 'Time Warner Cable':
-    MSO_ID = 'TWC'
-elif PROVIDER == 'Verizon':
-    MSO_ID = 'Verizon'
-elif PROVIDER == 'Bright House':
-    MSO_ID = 'Brighthouse'
-
-
-IDP_URL = 'https://sp.auth.adobe.com/adobe-services/1.0/authenticate/saml?domain_name=adobe.com&noflash=true&mso_id='+MSO_ID+'&requestor_id=MML&no_iframe=true&client_type=iOS&client_version=1.9.4&redirect_url=http://adobepass.ios.app/'           
-ORIGIN = ''
-REFERER = ''
-
 
 #User Agents
 UA_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_4 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Mobile/12H143'
@@ -608,19 +523,6 @@ fname = os.path.join(ADDON_PATH_PROFILE, 'device.id')
 device_file = open(fname,'r') 
 DEVICE_ID = device_file.readline()
 device_file.close()
-
-#Create a file for storing Provider info
-fname = os.path.join(ADDON_PATH_PROFILE, 'provider.info')
-if os.path.isfile(fname):    
-    provider_file = open(fname,'r')
-    last_provider = provider_file.readline()
-    provider_file.close()
-    if MSO_ID != last_provider:
-        CLEAR_SAVED_DATA()
-
-provider_file = open(fname,'w')   
-provider_file.write(MSO_ID)
-provider_file.close()
 
 
 #Event Colors
