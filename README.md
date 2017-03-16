@@ -1,11 +1,5 @@
-plugin.video.nbcsnliveextra
+plugin.video.mmlive
 ======================
 
-KODI plugin NBC Sports Live Extra
+KODI plugin March Madness Live
 
-This plugin was built to watch** live and archive video of NBC Sports events 
-
-
-Thread: http://forum.kodi.tv/showthread.php?tid=207159
-
-** Most streams require a valid Cable / Satellite provider account to view
