@@ -196,46 +196,17 @@ def setArchiveStreams(tourn_day, json_source, teams):
 
 def startStream(game_id):
     adobe = ADOBE(SERVICE_VARS)
-    #1. Authorize device
-    #2. Get media token
-    #3. Sign stream (TV sign)
-    #--------------------------
-    #http://stream.nbcsports.com/data/mobile/Requestor_ID_Lookup_doc.csv    
-    #--------------------------
-    resource_id = GET_RESOURCE_ID()      
-    #adobe.authorizeDevice(resource_id)
-    adobe.authenticate()
+    
+    resource_id = 'truTV'
+    mvpd = adobe.authorizeDevice(resource_id)
+    #adobe.authenticate()
     media_token = adobe.mediaToken(resource_id)          
-    stream_url = adobe.tvSign(media_token, resource_id, stream_url)
-   
-
-    partnerParam1 = tokenTurner(media_token)
-    stream_url = fetchStream(game_id, partnerParam1)
+    
+    stream_url = fetchStream(game_id)
+    playable_stream = tokenTurner(media_token,stream_url,mvpd)
     #Set quality level based on user settings    
     #stream_url = SET_STREAM_QUALITY(stream_url) 
-    listitem = xbmcgui.ListItem(path=stream_url)        
-    xbmcplugin.setResolvedUrl(handle=addon_handle, succeeded=True, listitem=listitem)
-
-
-def startStreamOLD(game_id):
-    #adobe = ADOBE(REQUESTOR_ID, PUBLIC_KEY, PRIVATE_KEY)       
-    adobe = ADOBE(SERVICE_VARS)
-    #1. Authorize device
-    #2. Get media token
-    #3. Sign stream (TV sign)
-    
-    resource_id = GET_RESOURCE_ID()  
-    #media_token = adobe.POST_SHORT_AUTHORIZED(signed_requestor_id,authz)    
-    adobe.authorizeDevice(resource_id)
-    media_token = adobe.mediaToken(resource_id)
-      
-    signed_requestor_id = 'kiDD4Lyj4et2/b9LXiOPs1k7mSjH622OwaeTR757WrmC43E19o3VBuMroNhGKVNh6YNFamJcRQ+BAern3zBaR/iRogwlVPhwu5eZnXMFI7FH1Hy0c3oVr/QhIFedgk36S5OTtYfUlm1+8Q2MXqcH/ON014MpC7dI+SmCK53jg8c='
-    
-    partnerParam1 = tokenTurner(media_token)
-    stream_url = fetchStream(game_id, partnerParam1)
-    #Set quality level based on user settings    
-    #stream_url = SET_STREAM_QUALITY(stream_url) 
-    listitem = xbmcgui.ListItem(path=stream_url)        
+    listitem = xbmcgui.ListItem(path=playable_stream)        
     xbmcplugin.setResolvedUrl(handle=addon_handle, succeeded=True, listitem=listitem)
 
 
@@ -303,14 +274,8 @@ elif mode==2:
     todaysGames(archive=True)
 elif mode==3:
     classicGames()
-elif mode==104:    
-    if USERNAME != '' and PASSWORD != '':
-        startStream(game_id)
-    else:
-        msg = "A valid username and password is required to view streams. Please set these in the add-on settings."
-        dialog = xbmcgui.Dialog() 
-        ok = dialog.ok('Credentials Missing', msg)
-        #sys.exit("Credentials not provided")
+elif mode==104:        
+    startStream(game_id)
     
 
 #Don't cache todays games

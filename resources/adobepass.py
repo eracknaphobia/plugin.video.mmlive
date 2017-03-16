@@ -94,12 +94,25 @@ class ADOBE():
         
 
     def authorizeDevice(self, resource_id):
+        '''
+        GET http://api.auth.adobe.com/api/v1/authorize?requestor=MML&resource=truTV&deviceType=Win8Universal&deviceId=c7825cb1-8137-424f-8ee2-01f2a9208f0e HTTP/1.1
+        Application-Info: name=Turner.MML/1.0.0.0; id=NCAADigital.NCAAMarchMadnessLive
+        UserAgent: AccessEnabler/1.0.0.1; AuthLib/1.0.0.0; (Windows 10 Universal)
+        Accept: application/json
+        Platform-Info: ,
+        Authorization: GET requestor_id=MML, nonce=78b53dd6-1831-4828-a5d6-bab799754fc9, signature_method=HMAC-SHA1, request_time=1489621247279, request_uri=/authorize, public_key=XfId78vskMBegCUx9fuiNQL3XvxP3SzN, signature=XE6Pb/e/f6AzqJ0iZbbK7Cne++Y=
+        Host: api.auth.adobe.com
+        Connection: Keep-Alive
+        Cookie: ppc=!ryw4UgpfOXW6tURdh8ryMu6ceuYmW3P2AJrg7X/3r3V+kzX0UHocxLo4/UpwP6WIZe7nLvXEaV/NmQequalsequals; ppc=!ryw4UgpfOXW6tURdh8ryMu6ceuYmW3P2AJrg7X/3r3V+kzX0UHocxLo4/UpwP6WIZe7nLvXEaV/NmQequalsequals; JSESSIONID=969C1B800E43DC3F8D050BE64978580A
+
+        '''
         auth_url = '/api/v1/authorize'
         authorization = self.createAuthorization('GET',auth_url)
         url = self.api_url+auth_url
         url += '?deviceId='+self.device_id
         url += '&requestor='+self.requestor_id
         url += '&resource='+urllib.quote(resource_id)
+
         url += '&format=json'
         #req = urllib2.Request(url)
 
@@ -114,6 +127,9 @@ class ADOBE():
                     ]
 
         json_source = self.requestJSON(url, headers)
+        mvpd = json_source['mvpd']
+
+        return mvpd
 
     
     def authenticate(self):
@@ -181,33 +197,6 @@ class ADOBE():
 
         return json_source['serializedToken']
 
-
-    def tvSign(self, media_token, resource_id, stream_url):
-        url = self.base_url+'//tvs/v1/sign'        
-        headers = [ ("Accept", "*/*"),
-                    ("Accept-Encoding", "deflate"),
-                    ("Accept-Language", "en;q=1"),
-                    ("Content-Type", "application/x-www-form-urlencoded"),  
-                    ("User-Agent", self.user_agent)
-                    ]        
-
-        body = urllib.urlencode({'cdn' : 'akamai',
-                                 'mediaToken' : media_token,
-                                 'resource' : base64.b64encode(resource_id),
-                                 'url' : stream_url
-                                })
-
-        addon_profile_path = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
-        cj = cookielib.LWPCookieJar(os.path.join(addon_profile_path, 'cookies.lwp'))        
-        cj.load(os.path.join(addon_profile_path, 'cookies.lwp'),ignore_discard=True)
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))    
-        opener.addheaders = headers 
-        response = opener.open(url, body)
-        stream_url = response.read()
-        response.close()
-        self.saveCookie(cj)
-                
-        return stream_url
 
 
     def requestJSON(self, url, headers, body=None, method=None):      

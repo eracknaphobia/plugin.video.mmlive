@@ -1,5 +1,6 @@
-2017.3.xx
+2017.3.16
 - Added Classic Games Section
+- Switched to registration code login
 
 2016.3.18.3
 - Fix Cox cable login
