@@ -106,7 +106,8 @@ def setTodaysStream(tourn_day, json_source, teams):
                 hTeam = getTeamInfo(teams, game['tmH'])
                 vTeam = getTeamInfo(teams,game['tmV'])    
                 game_time = time.strftime('%I:%M %p', time.localtime(int(game['time']))).lstrip('0')
-                live_video = game['video']
+                #live_video = game['video']
+                state = game['state']
                 archive_video = game['rcpV']
                 #print game_id + ' ' + live_video + ' ' + archive_video
                 
@@ -117,9 +118,10 @@ def setTodaysStream(tourn_day, json_source, teams):
                 else:
                     name =  '#'+ vTeam['seed']+ ' ' + vTeam['school'] + ' ' + colorString(game['ptsV'], SCORE_COLOR) + ' vs #'+ hTeam['seed']+ ' ' + hTeam['school'] + ' ' + colorString(game['ptsH'], SCORE_COLOR)
 
-                if not live_video:
+                if state == "1":                    
                     name =  colorString(game_time, UPCOMING) + ' ' + name
-
+                elif state == "4":
+                    name =  colorString("FINAL", FINAL) + ' ' + name
                 else:
                     clock = getGameClock(current_games, game_id)
                     if clock == '':
