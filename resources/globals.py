@@ -8,7 +8,7 @@ from urllib2 import URLError, HTTPError
 import sys
 import xbmc,xbmcplugin, xbmcgui, xbmcaddon
 import re, os, time
-import urllib, urllib2, httplib2
+import urllib, urllib2
 import json
 import HTMLParser
 import calendar
@@ -97,9 +97,6 @@ def SET_STREAM_QUALITY(url):
         cookies = cookies + cookie.name + "=" + cookie.value
     
     line = re.compile("(.+?)\n").findall(master)  
-    
-    xplayback = ''.join([random.choice('0123456789ABCDEF') for x in range(32)])
-    xplayback = xplayback[0:7]+'-'+xplayback[8:12]+'-'+xplayback[13:17]+'-'+xplayback[18:22]+'-'+xplayback[23:]
 
     for temp_url in line:
         if '#EXT' not in temp_url:
@@ -209,11 +206,11 @@ def getTeamInfo(teams, team_id):
     
     for team in all_teams:        
         if str(team['id']) == str(team_id):
-            team_name = team['school']
-            link_name = team['link']
+            #team_name = team['school']
+            #link_name = team['link']
             break
 
-    return team_name, link_name
+    return team
 
 def getCurrentInfo():
     now = datetime.now()
@@ -261,7 +258,7 @@ def getGameClock(current_games, game_id):
       }
     '''
     games = json.loads(current_games)
-    clock = 'End'
+    clock = 'Final'    
     ordinal_indicator = ''
 
     for game in games:        
@@ -269,18 +266,21 @@ def getGameClock(current_games, game_id):
             print game
             clock = str(game['clock'])
             per = str(game['per'])
-            if per != '':
-                if int(per) == 1:
-                    ordinal_indicator = "st"
-                elif int(per) == 2:
-                    ordinal_indicator = "nd"
-                elif int(per) == 3:
-                    ordinal_indicator = "rd"
-                else:
-                    ordinal_indicator = "th"                
-            break
+            state = str(game['state'])
+            if state != '4':
+                if per != '':
+                    if int(per) == 1:
+                        ordinal_indicator = "st"
+                    elif int(per) == 2:
+                        ordinal_indicator = "nd"
+                    elif int(per) == 3:
+                        ordinal_indicator = "rd"
+                    else:
+                        ordinal_indicator = "th"                
+                break
+                clock + ' ' + per + ordinal_indicator
 
-    return clock + ' ' + per + ordinal_indicator
+    return clock
     
 
 def getAppConfig():
@@ -358,37 +358,12 @@ def tokenTurner(media_token, stream_url, mvpd):
         return stream_url
 
 
-def fetchStream(game_id):
-    ''' 
-        http://data.ncaa.com/mml/2017/mobile/video/103_bk.json
-    GET http://data.ncaa.com/mml/2016/mobile/video/201.json HTTP/1.1
-    Host: data.ncaa.com
-    Connection: keep-alive
-    Accept: */*
-    User-Agent: MML/43 CFNetwork/758.2.8 Darwin/15.0.0
-    Accept-Language: en-us
-    Accept-Encoding: gzip, deflate
-    Connection: keep-alive
-
-    {
-        "updatedTimestamp": 
-        "2017-3-14 23:52:07 AST",
-        "mobile": 
-        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/mo/master.m3u8",
-        "desktop": 
-        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/de/master.m3u8",
-        "connected1": 
-        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/connected1/master.m3u8",
-        "connected2":
-        "http://mml01-i.akamaihd.net/hls/live/265801/101/wake-forestvskansas-st/connected2/master.m3u8"
-        }
-
-
-    Recap
-    http://data.ncaa.com/mml/2017/mobile/game/game_101.json 
-    '''
+def fetchStream(game_id,archive=None):    
     now = datetime.now()
-    req = urllib2.Request('http://data.ncaa.com/mml/'+str(now.year)+'/mobile/video/'+game_id+'_bk.json')    
+    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/video/'+game_id+'_bk.json'
+    if archive == 'archive': url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/game/game_'+game_id+'.json'
+    now = datetime.now()
+    req = urllib2.Request(url)    
     req.add_header('Accept', '*/*')
     req.add_header('User-Agent', UA_MMOD)
     req.add_header('Accept-Language', 'en-us')
@@ -398,9 +373,11 @@ def fetchStream(game_id):
     json_source = json.load(response)                       
     response.close()  
     
-    stream_url = json_source['connected1']
-    
-    
+    if archive == 'archive':
+        stream_url = json_source['game']['videos']['video'][0]['connected']
+    else:
+        stream_url = json_source['connected1']
+        
     
     return stream_url
 

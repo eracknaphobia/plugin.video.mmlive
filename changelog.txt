@@ -1,3 +1,9 @@
+2017.3.17
+- Added a deauthorize option
+- Added seed number to team name
+- Archive games are ~2min Recaps (for now)
+- Removed httplib2 requirement
+
 2017.3.16
 - Added Classic Games Section
 - Switched to registration code login

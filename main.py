@@ -54,6 +54,7 @@ def categories():
     addDir('Today\'s Games','/live',1,ICON,FANART)
     addDir('Archive Games','/live',2,ICON,FANART)
     addDir('Classic Games','/classic',3,ICON,FANART)
+    addDir('Deauthorize this Device','/deauth',4,ICON,FANART)
     #addDir('Featured',ROOT_URL+'mcms/prod/nbc-featured.json',2,ICON,FANART)
     #addDir('On NBC Sports','/replays',3,ICON,FANART)
 
@@ -102,19 +103,19 @@ def setTodaysStream(tourn_day, json_source, teams):
         if game['time'] >= tourn_day and  game['time'] < tomorrow:        
             if game['tmH'] != '' and game['tmV'] != '':                
                 game_id = game['id']                
-                home_name, home_img = getTeamInfo(teams, game['tmH'])
-                visitor_name, visitor_img = getTeamInfo(teams,game['tmV'])    
+                hTeam = getTeamInfo(teams, game['tmH'])
+                vTeam = getTeamInfo(teams,game['tmV'])    
                 game_time = time.strftime('%I:%M %p', time.localtime(int(game['time']))).lstrip('0')
                 live_video = game['video']
                 archive_video = game['rcpV']
                 #print game_id + ' ' + live_video + ' ' + archive_video
                 
-                title = home_name + ' vs ' + visitor_name
+                title = vTeam['school'] + ' vs ' + hTeam['school']
 
                 if NO_SPOILERS == '1' or NO_SPOILERS == '2':
                     name =  title
                 else:
-                    name =  visitor_name + ' ' + colorString(game['ptsV'], SCORE_COLOR) + ' vs ' + home_name + ' ' + colorString(game['ptsH'], SCORE_COLOR)
+                    name =  '#'+ vTeam['seed']+ ' ' + vTeam['school'] + ' ' + colorString(game['ptsV'], SCORE_COLOR) + ' vs #'+ hTeam['seed']+ ' ' + hTeam['school'] + ' ' + colorString(game['ptsH'], SCORE_COLOR)
 
                 if not live_video:
                     name =  colorString(game_time, UPCOMING) + ' ' + name
@@ -167,24 +168,24 @@ def setArchiveStreams(tourn_day, json_source, teams):
         if game['time'] < tourn_day:
             if game['tmH'] != '' and game['tmV'] != '':                
                 game_id = game['id']                
-                home_name, home_img = getTeamInfo(teams, game['tmH'])
-                visitor_name, visitor_img = getTeamInfo(teams,game['tmV'])    
+                hTeam = getTeamInfo(teams, game['tmH'])
+                vTeam = getTeamInfo(teams,game['tmV'])     
                 game_time = time.strftime('%I:%M %p', time.localtime(int(game['time']))).lstrip('0')
                 live_video = game['video']
                 archive_video = game['rcpV']
                 
-                title = home_name + ' vs ' + visitor_name
+                title = vTeam['school'] + ' vs ' + hTeam['school']
 
                 if NO_SPOILERS == '1' or NO_SPOILERS == '3':
                     name =  title
                 else:                    
-                    name =  visitor_name + ' ' + colorString(game['ptsV'], SCORE_COLOR) + ' vs ' + home_name + ' ' + colorString(game['ptsH'], SCORE_COLOR)
+                    name =  '#'+ vTeam['seed']+ ' ' + vTeam['school'] + ' ' + colorString(game['ptsV'], SCORE_COLOR) + ' vs ' + '#'+ hTeam['seed']+ ' ' + hTeam['school'] + ' ' + colorString(game['ptsH'], SCORE_COLOR)
                 
 
                 name =  colorString('FINAL ',FINAL) + name
 
                 
-                link_url = ''
+                link_url = 'archive'
 
                 #'http://i.turner.ncaa.com/sites/default/files/images/2016/03/17/duke-unc-wilmington-1.jpg'
                 #fanart = 'http://i.turner.ncaa.com/sites/default/files/images/2016/03/17/'+home_img+'-uncw-1.jpg'
@@ -195,17 +196,20 @@ def setArchiveStreams(tourn_day, json_source, teams):
 
 
 def startStream(game_id):
-    adobe = ADOBE(SERVICE_VARS)
+    stream_url = fetchStream(game_id,addon_url)
     
-    resource_id = 'truTV'
-    mvpd = adobe.authorizeDevice(resource_id)
-    #adobe.authenticate()
-    media_token = adobe.mediaToken(resource_id)          
-    
-    stream_url = fetchStream(game_id)
-    playable_stream = tokenTurner(media_token,stream_url,mvpd)
-    #Set quality level based on user settings    
-    #stream_url = SET_STREAM_QUALITY(stream_url) 
+    if addon_url == 'archive':        
+        playable_stream = stream_url + '|User-Agent='+UA_MMOD
+    else:
+        adobe = ADOBE(SERVICE_VARS)        
+        resource_id = 'truTV'
+        mvpd = adobe.authorizeDevice(resource_id)
+        #adobe.authenticate()
+        media_token = adobe.mediaToken(resource_id)          
+        playable_stream = tokenTurner(media_token,stream_url,mvpd)
+        #Set quality level based on user settings    
+        #stream_url = SET_STREAM_QUALITY(stream_url) 
+
     listitem = xbmcgui.ListItem(path=playable_stream)        
     xbmcplugin.setResolvedUrl(handle=addon_handle, succeeded=True, listitem=listitem)
 
@@ -231,14 +235,14 @@ def get_params():
 
 
 params=get_params()
-url=None
+addon_url=None
 name=None
 mode=None
 game_id=None
 icon_image = None
 
 try:
-    url=urllib.unquote_plus(params["url"])
+    addon_url=urllib.unquote_plus(params["url"])
 except:
     pass
 try:
@@ -260,7 +264,7 @@ except:
 
 
 print "Mode: "+str(mode)
-print "URL: "+str(url)
+print "URL: "+str(addon_url)
 print "Name: "+str(name)
 print "game_id:"+str(game_id)
 print "icon image:"+str(icon_image)
@@ -274,12 +278,21 @@ elif mode==2:
     todaysGames(archive=True)
 elif mode==3:
     classicGames()
+elif mode==4:
+    msg = 'Are you sure you wish to deauthorize this device?'
+    dialog = xbmcgui.Dialog() 
+    answer = dialog.yesno('Deauthorize Devices', msg)
+    if answer:
+        adobe = ADOBE(SERVICE_VARS)
+        adobe.deauthorizeDevice()
+    sys.exit()
+
 elif mode==104:        
     startStream(game_id)
     
 
 #Don't cache todays games
 if mode==1:
-    xbmcplugin.endOfDirectory(int(sys.argv[1]), cacheToDisc=False)
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
 else:
-    xbmcplugin.endOfDirectory(int(sys.argv[1]))
+    xbmcplugin.endOfDirectory(addon_handle)
