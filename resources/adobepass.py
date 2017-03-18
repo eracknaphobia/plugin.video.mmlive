@@ -77,35 +77,17 @@ class ADOBE():
         
         json_source = self.requestJSON(url, headers, body)
        
-        #prompt user to got to http://activate.nbcsports.com/?device=Win10 and activate the code in the messagebox
-        msg = '1. Go to [B][COLOR yellow]'+self.activate_url+'[/COLOR][/B][CR]'
-        #msg += '2. Select [B][COLOR yellow]Windows 10[/COLOR][/B] as your device[CR]'
+        
+        msg = '1. Go to [B][COLOR yellow]'+self.activate_url+'[/COLOR][/B][CR]'        
         msg += '2. Select any platform, it does not matter[CR]'
-        msg += '3. Enter [B][COLOR yellow]'+json_source['code']+'[/COLOR][/B] as your activation code'
-        #msg += "\n" + json_source['code']
+        msg += '3. Enter [B][COLOR yellow]'+json_source['code']+'[/COLOR][/B] as your activation code'        
         self.regcode = json_source['code']
-        dialog = xbmcgui.Dialog() 
-        #a = dialog.yesno(heading='Activate Device', line1=msg, nolabel='Cancel', yeslabel='Continue')
-        ok = dialog.ok('Activate Device', msg)
-        #if a:
-        #self.authorizeDevice()        
-        #return json_source
+        dialog = xbmcgui.Dialog()         
+        ok = dialog.ok('Activate Device', msg)        
 
         
 
-    def authorizeDevice(self, resource_id):
-        '''
-        GET http://api.auth.adobe.com/api/v1/authorize?requestor=MML&resource=truTV&deviceType=Win8Universal&deviceId=c7825cb1-8137-424f-8ee2-01f2a9208f0e HTTP/1.1
-        Application-Info: name=Turner.MML/1.0.0.0; id=NCAADigital.NCAAMarchMadnessLive
-        UserAgent: AccessEnabler/1.0.0.1; AuthLib/1.0.0.0; (Windows 10 Universal)
-        Accept: application/json
-        Platform-Info: ,
-        Authorization: GET requestor_id=MML, nonce=78b53dd6-1831-4828-a5d6-bab799754fc9, signature_method=HMAC-SHA1, request_time=1489621247279, request_uri=/authorize, public_key=XfId78vskMBegCUx9fuiNQL3XvxP3SzN, signature=XE6Pb/e/f6AzqJ0iZbbK7Cne++Y=
-        Host: api.auth.adobe.com
-        Connection: Keep-Alive
-        Cookie: ppc=!ryw4UgpfOXW6tURdh8ryMu6ceuYmW3P2AJrg7X/3r3V+kzX0UHocxLo4/UpwP6WIZe7nLvXEaV/NmQequalsequals; ppc=!ryw4UgpfOXW6tURdh8ryMu6ceuYmW3P2AJrg7X/3r3V+kzX0UHocxLo4/UpwP6WIZe7nLvXEaV/NmQequalsequals; JSESSIONID=969C1B800E43DC3F8D050BE64978580A
-
-        '''
+    def authorizeDevice(self, resource_id):        
         auth_url = '/api/v1/authorize'
         authorization = self.createAuthorization('GET',auth_url)
         url = self.api_url+auth_url
@@ -206,6 +188,7 @@ class ADOBE():
         except: pass
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))    
         opener.addheaders = headers     
+        json_source = ''
           
         try:           
             request = urllib2.Request(url, body)
@@ -219,8 +202,12 @@ class ADOBE():
                 msg = 'Your device is not authorized to view the selected stream.\n Would you like to authorize this device now?'
                 dialog = xbmcgui.Dialog() 
                 answer = dialog.yesno('Account Not Authorized', msg)                 
-                if answer: self.registerDevice()
-            sys.exit(0)
+                if answer:
+                    self.registerDevice()
+                else:
+                    sys.exit(0)
+            else:
+                sys.exit(0)
 
         return json_source
 

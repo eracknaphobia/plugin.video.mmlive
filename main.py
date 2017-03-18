@@ -1,10 +1,6 @@
 from resources.globals import *
 from resources.adobepass import ADOBE
 
-REQUESTOR_ID = 'MML'
-PUBLIC_KEY = 'XfId78vskMBegCUx9fuiNQL3XvxP3SzN'
-PRIVATE_KEY = '60OKORsYmOkUMgDm'
-
 #Add-on specific Adobepass variables
 SERVICE_VARS = {'requestor_id':'MML',
                 'public_key':'XfId78vskMBegCUx9fuiNQL3XvxP3SzN',
@@ -12,62 +8,18 @@ SERVICE_VARS = {'requestor_id':'MML',
                 'activate_url':'ncaa.com/activate'
                }
 
-def categories():       
-    '''
-      <!-- TVE Authentication Settings -->
-      <Parameter Name="TveRequestorId" Value="MML" />
-      <Parameter Name="TveConfigUrl" Value="http://z.cdn.turner.com/xslo/cvp/config/mml/tve/0/mvpdconfig_win8.xml" />
-      <Parameter Name="TveAuthUrl" Value="auth.adobe.com" />
-      <Parameter Name="TveConsumerKey" Value="XfId78vskMBegCUx9fuiNQL3XvxP3SzN" />
-      <Parameter Name="TveConsumerSecretKey" Value="60OKORsYmOkUMgDm" />
-      <Parameter Name="TveDeviceType" Value="large-device" />
-      <Parameter Name="TempPassProviderKey" Value="TempPass" />
-
-
-
-      http://data.ncaa.com/mml/2017/mobile/environments.json
-      {
-            "activeEnvironment": "Live",
-            "environments": {
-                "Live": {
-                    "iPhoneConfig": "https://data.ncaa.com/mml/2017/mobile/appConfig_iPhone.json",
-                    "iPadConfig": "https://data.ncaa.com/mml/2017/mobile/appConfig_iPad.json",
-                    "aPhoneConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_aPhone.json",
-                    "aTabConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_aTab.json",
-                    "fTabConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_fTab.json",
-                    "wTabConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_wTab.json",
-                    "tvOSConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_tvOS.json",
-                    "rokuConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_roku.json",
-                    "fTVConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_fTV.json",
-                    "desktopConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_desktop.json",
-                    "xBoxConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_xBox.json",
-                    "alexaConfig": "http://data.ncaa.com/mml/2017/mobile/appConfig_alexa.json",
-                    "description": "Live Environment for 2017"
-                }
-            }
-        }
-
-      json api http://data.ncaa.com/mml/2017/mobile/appConfig_wTab.json
-      #Year is interchangable
-    '''   
-    #addDir('Live & Upcoming','/live',1,ICON,FANART)
+def categories():               
     addDir('Today\'s Games','/live',1,ICON,FANART)
     addDir('Archive Games','/live',2,ICON,FANART)
     addDir('Classic Games','/classic',3,ICON,FANART)
-    addDir('Deauthorize this Device','/deauth',4,ICON,FANART)
-    #addDir('Featured',ROOT_URL+'mcms/prod/nbc-featured.json',2,ICON,FANART)
-    #addDir('On NBC Sports','/replays',3,ICON,FANART)
+    addDir('Deauthorize this Device','/deauth',4,ICON,FANART)    
 
 
 def todaysGames(archive=None):   
     now = datetime.now()
-    #url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/bracket.json'
-    #url = 'http://data.ncaa.com/mml/2016/mobile/bracket.json'
-
     url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/bracket.json'
-    #print url
-    req = urllib2.Request(url)
-    #req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
+    
+    req = urllib2.Request(url)    
     req.add_header('Connection', 'keep-alive')
     req.add_header('Accept', '*/*')
     req.add_header('User-Agent', UA_MMOD)
@@ -88,7 +40,6 @@ def todaysGames(archive=None):
         setArchiveStreams(tourn_day, json_source, teams)
 
     
-
 def setTodaysStream(tourn_day, json_source, teams):
     tomorrow = str(int(tourn_day) + 86400)            
     try:
@@ -105,11 +56,9 @@ def setTodaysStream(tourn_day, json_source, teams):
                 game_id = game['id']                
                 hTeam = getTeamInfo(teams, game['tmH'])
                 vTeam = getTeamInfo(teams,game['tmV'])    
-                game_time = time.strftime('%I:%M %p', time.localtime(int(game['time']))).lstrip('0')
-                #live_video = game['video']
+                game_time = time.strftime('%I:%M %p', time.localtime(int(game['time']))).lstrip('0')    
                 state = game['state']
-                archive_video = game['rcpV']
-                #print game_id + ' ' + live_video + ' ' + archive_video
+                archive_video = game['rcpV']                
                 
                 title = vTeam['school'] + ' vs ' + hTeam['school']
 
@@ -129,22 +78,14 @@ def setTodaysStream(tourn_day, json_source, teams):
                     name =  colorString(clock,GAMETIME_COLOR) + ' ' + name
 
                 
-                link_url = ''
-
-                #'http://i.turner.ncaa.com/sites/default/files/images/2016/03/17/duke-unc-wilmington-1.jpg'
-                #fanart = 'http://i.turner.ncaa.com/sites/default/files/images/2016/03/17/'+home_img+'-uncw-1.jpg'
-                #http://i.turner.ncaa.com/sites/default/files/cssu/mml/2016/games/[DIRECTION]/[TEAM-NAME-SAFE].jpg?cachebust=1426166870
-                #http://i.turner.ncaa.com/sites/default/files/cssu/mml/2016/games/R/duke.jpg
-                #print game['video']                
-                addStream(name,link_url,title,game_id,icon=None,fanart=None)
+                link_url = ''             
+                addStream(name,link_url,title,game_id)
 
 
 def classicGames():
     now = datetime.now()    
-    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/vod/classic_games.json'
-    #print url
-    req = urllib2.Request(url)
-    #req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
+    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/vod/classic_games.json'    
+    req = urllib2.Request(url)    
     req.add_header('Connection', 'keep-alive')
     req.add_header('Accept', '*/*')
     req.add_header('User-Agent', UA_MMOD)
@@ -183,18 +124,9 @@ def setArchiveStreams(tourn_day, json_source, teams):
                 else:                    
                     name =  '#'+ vTeam['seed']+ ' ' + vTeam['school'] + ' ' + colorString(game['ptsV'], SCORE_COLOR) + ' vs ' + '#'+ hTeam['seed']+ ' ' + hTeam['school'] + ' ' + colorString(game['ptsH'], SCORE_COLOR)
                 
-
-                name =  colorString('FINAL ',FINAL) + name
-
-                
+                name =  colorString('FINAL ',FINAL) + name               
                 link_url = 'archive'
-
-                #'http://i.turner.ncaa.com/sites/default/files/images/2016/03/17/duke-unc-wilmington-1.jpg'
-                #fanart = 'http://i.turner.ncaa.com/sites/default/files/images/2016/03/17/'+home_img+'-uncw-1.jpg'
-                #http://i.turner.ncaa.com/sites/default/files/cssu/mml/2016/games/[DIRECTION]/[TEAM-NAME-SAFE].jpg?cachebust=1426166870
-                #http://i.turner.ncaa.com/sites/default/files/cssu/mml/2016/games/R/duke.jpg
-                #print game['video']                
-                addStream(name,link_url,title,game_id,icon=None,fanart=None)
+                addStream(name,link_url,title,game_id)
 
 
 def startStream(game_id):
@@ -205,12 +137,9 @@ def startStream(game_id):
     else:
         adobe = ADOBE(SERVICE_VARS)        
         resource_id = 'truTV'
-        mvpd = adobe.authorizeDevice(resource_id)
-        #adobe.authenticate()
+        mvpd = adobe.authorizeDevice(resource_id)        
         media_token = adobe.mediaToken(resource_id)          
-        playable_stream = tokenTurner(media_token,stream_url,mvpd)
-        #Set quality level based on user settings    
-        #stream_url = SET_STREAM_QUALITY(stream_url) 
+        playable_stream = tokenTurner(media_token,stream_url,mvpd)        
 
     listitem = xbmcgui.ListItem(path=playable_stream)        
     xbmcplugin.setResolvedUrl(handle=addon_handle, succeeded=True, listitem=listitem)
@@ -263,13 +192,6 @@ try:
     icon_image=urllib.unquote_plus(params["icon_image"])
 except:
     pass
-
-
-print "Mode: "+str(mode)
-print "URL: "+str(addon_url)
-print "Name: "+str(name)
-print "game_id:"+str(game_id)
-print "icon image:"+str(icon_image)
 
 
 if mode==None:        

@@ -1,3 +1,8 @@
+2017.3.18
+- Fixed completed games not showing final
+- Fixed some stream parameter issues
+- Code clean up
+
 2017.3.17
 - Added a deauthorize option
 - Added seed number to team name
