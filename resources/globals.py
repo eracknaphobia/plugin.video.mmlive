@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import time
 import cookielib
 import base64
+import requests, urlparse
 
 
 addon_handle = int(sys.argv[1])
@@ -257,46 +258,23 @@ def getAppConfig():
     #BASE_PATH = api['base']['sche']
 
 
+def tokenTurner(media_token, stream_url, mvpd):
+    url = ('https://token.ncaa.com/token/token_spe_mml?profile=mml&path=%s&format=json&accessTokenType=adobe&accessToken=%s') % \
+          (urlparse.urlparse(stream_url).path, urllib.quote_plus(str(base64.b64decode(media_token))))
 
-def tokenTurner(media_token, stream_url, mvpd):       
-    #url = 'http://token.vgtf.net/token/turner'
-    url = 'https://token.vgtf.net/token/token_spe_mml?profile=mml'
-
-    cj = cookielib.LWPCookieJar()
-    cj.load(os.path.join(ADDON_PATH_PROFILE, 'cookies.lwp'),ignore_discard=True)
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    opener.addheaders = [ ("Current-Type", "application/x-www-form-urlencoded"),                            
-                        ("Pragma", "no-cache"),
-                        ("Content-Type", "application/x-www-form-urlencoded"),                            
-                        ("Accept-Encoding", "deflate"),    
-                        ("Connection", "keep-alive"),                                                                            
-                        ("User-Agent", UA_MMOD)]
-    
-    xbmc.log(str(base64.b64decode(media_token)))    
-    payload = urllib.urlencode({'accessToken' : str(base64.b64decode(media_token)),                                
-                            'accessTokenType' : 'Adobe',
-                            #'sessionId': '05a564d7c8622b5dd1c67f0ae737c5bb1515d66a~auth~win8~mml~100~1489621236122',
-                            #'throttled' : 'no',
-                            'appData' : '{"clientTime":0}',
-                            'mvpd' : mvpd,                            
-                            'path' : FIND(stream_url,BASE_PATH,'master.m3u8')+'*'
-                            })
-
-    resp = opener.open(url, payload)
-    response = resp.read()    
-    resp.close()    
-    hdnts = FIND(response,'<token>','</token>')      
-    stream_url += '?hdnts='+hdnts
-    xbmc.log(stream_url)    
-    stream_url = stream_url + '|User-Agent='+UA_MMOD
-        
-
+    headers = {'app-id': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBJZCI6Im5jYWEtbW1sLWlvcy1ncnJjZWwiLCJuZXR3b3JrIj'
+                         'oibmNhYSIsInBsYXRmb3JtIjoiaW9zIiwicHJvZHVjdCI6Im1tbCIsImlhdCI6MTUxNTcwMDExM30.NLuTO5WIGNKd7Y'
+                         'XGIEK0LVawhw68mawSQqnGAsRUs80',
+               'User-Agent': 'MML%20iOS/166 CFNetwork/976 Darwin/18.2.0'
+               }
+    r = requests.get(url, headers=headers)
+    stream_url += '?hdnts=' + r.json()['auth']['token'] + '|User-Agent=MML%20iOS/166 CFNetwork/976 Darwin/18.2.0'
     return stream_url
 
 
 def fetchStream(game_id,archive=None):    
     now = datetime.now()
-    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/video/'+game_id+'_bk.json'
+    url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/video/'+game_id+'_pr.json'
     if archive == 'archive': url = 'http://data.ncaa.com/mml/'+str(now.year)+'/mobile/game/game_'+game_id+'.json'
     now = datetime.now()
     req = urllib2.Request(url)    
@@ -313,8 +291,7 @@ def fetchStream(game_id,archive=None):
         stream_url = json_source['game']['videos']['video'][0]['connected']
     else:
         stream_url = json_source['connected1']
-        
-    
+
     return stream_url
 
 
