@@ -315,12 +315,12 @@ def addStream(name,link_url,title,game_id,icon=None,fanart=None):
     ok=True
     u=sys.argv[0]+"?url="+urllib.quote_plus(link_url)+"&mode="+str(104)+"&name="+urllib.quote_plus(name)+"&game_id="+urllib.quote_plus(str(game_id))    
     
-    liz=xbmcgui.ListItem(name, iconImage=ICON, thumbnailImage=ICON)     
-    
+    liz=xbmcgui.ListItem(name, iconImage=ICON, thumbnailImage=ICON)
+
     if fanart != None:
-        liz.setProperty('fanart_image', fanart)       
+        liz.setArt({'fanart': fanart})
     else:
-        liz.setProperty('fanart_image', FANART)
+        liz.setArt({'fanart': FANART})
 
     liz.setProperty("IsPlayable", "true")
     liz.setInfo( type="Video", infoLabels={ "Title": title } )    
@@ -341,9 +341,9 @@ def addDir(name,url,mode,iconimage,fanart=None):
     liz.setInfo( type="Video", infoLabels={ "Title": name } )
 
     if fanart != None:
-        liz.setProperty('fanart_image', fanart)
+        liz.setArt({'fanart': fanart})
     else:
-        liz.setProperty('fanart_image', FANART)
+        liz.setArt({'fanart': FANART})
 
 
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=True)    
@@ -362,9 +362,9 @@ def addLink(name,url,iconimage,fanart=None):
     liz.setProperty("IsPlayable", "true")
 
     if fanart != None:
-        liz.setProperty('fanart_image', fanart)
+        liz.setArt({'fanart': fanart})
     else:
-        liz.setProperty('fanart_image', FANART)
+        liz.setArt({'fanart': FANART})
 
 
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=liz)    
