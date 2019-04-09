@@ -141,9 +141,6 @@ def startStream(game_id):
         media_token = adobe.mediaToken(resource_id)          
         stream_url = tokenTurner(media_token,stream_url,mvpd)
 
-    xbmc.log('------------------------------------------------------------------------------------------')
-    xbmc.log(stream_url)
-    xbmc.log('------------------------------------------------------------------------------------------')
     if xbmc.getCondVisibility('System.HasAddon(inputstream.adaptive)'):
         listitem = xbmcgui.ListItem(path=stream_url.split("|")[0])
         listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')

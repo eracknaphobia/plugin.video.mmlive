@@ -115,15 +115,12 @@ def SET_STREAM_QUALITY(url):
     
     if len(stream_title) > 0:
         ret =-1      
-        stream_title.sort(key=natural_sort_key)  
-        print "PLAY BEST SETTING"
-        print PLAY_BEST
+        stream_title.sort(key=natural_sort_key)
         if str(PLAY_BEST) == 'true':
             ret = len(stream_title)-1            
         else:
             dialog = xbmcgui.Dialog() 
             ret = dialog.select('Choose Stream Quality', stream_title)
-            print ret
         if ret >=0:
             url = stream_url.get(stream_title[ret])           
         else:
@@ -221,7 +218,6 @@ def getGameClock(current_games, game_id):
 
     for game in games:        
         if str(game['id']) == str(game_id):
-            print game
             clock = str(game['clock'])
             per = str(game['per'])
             state = str(game['state'])
@@ -313,9 +309,10 @@ def getAuthCookie():
 
 def addStream(name,link_url,title,game_id,icon=None,fanart=None):
     ok=True
-    u=sys.argv[0]+"?url="+urllib.quote_plus(link_url)+"&mode="+str(104)+"&name="+urllib.quote_plus(name)+"&game_id="+urllib.quote_plus(str(game_id))    
-    
-    liz=xbmcgui.ListItem(name, iconImage=ICON, thumbnailImage=ICON)
+    u=sys.argv[0]+"?url="+urllib.quote_plus(link_url)+"&mode="+str(104)+"&name="+urllib.quote_plus(name)+"&game_id="+urllib.quote_plus(str(game_id))
+
+    liz = xbmcgui.ListItem(name)
+    liz.setArt({'icon': ICON, 'thumb': ICON })
 
     if fanart != None:
         liz.setArt({'fanart': fanart})
@@ -332,11 +329,12 @@ def addStream(name,link_url,title,game_id,icon=None,fanart=None):
 def addDir(name,url,mode,iconimage,fanart=None):       
     ok=True    
     u=sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
-    
-    if iconimage != None:
-        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage) 
+
+    liz = xbmcgui.ListItem(name)
+    if iconimage is not None:
+        liz.setArt({'icon': iconimage, 'thumb': iconimage})
     else:
-        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ICON) 
+        liz.setArt({'icon': ICON, 'thumb': ICON})
 
     liz.setInfo( type="Video", infoLabels={ "Title": name } )
 
@@ -352,20 +350,21 @@ def addDir(name,url,mode,iconimage,fanart=None):
 
 
 def addLink(name,url,iconimage,fanart=None):
-    ok=True            
-    if iconimage != None:
-        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage) 
+    ok=True
+    liz = xbmcgui.ListItem(name)
+
+    if iconimage is not None:
+        liz.setArt({'icon': iconimage, 'thumb': iconimage})
     else:
-        liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=ICON) 
+        liz.setArt({'icon': ICON, 'thumb': ICON})
 
     liz.setInfo( type="Video", infoLabels={ "Title": name } )
     liz.setProperty("IsPlayable", "true")
 
-    if fanart != None:
+    if fanart is not None:
         liz.setArt({'fanart': fanart})
     else:
         liz.setArt({'fanart': FANART})
-
 
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=liz)    
     xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
